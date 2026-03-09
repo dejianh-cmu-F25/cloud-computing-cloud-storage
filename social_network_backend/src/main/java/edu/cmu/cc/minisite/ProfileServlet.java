@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Objects;
 
@@ -124,14 +126,34 @@ public class ProfileServlet extends HttpServlet {
      */
     JsonObject validateLoginAndReturnResult(String name, String pwd) {
         JsonObject result = new JsonObject();
-        String query = "SELECT A FROM B WHERE C = ? AND D = ?";
+        result.addProperty("name", "Unauthorized");
+        result.addProperty("profile", "#");
 
-        // TODO: To be implemented
-        // Use PreparedStatements, use ResultSet.getString(String columnLabel)
-        // instead of ResultSet.getString(int columnIndex) for the test cases to work.
-        // You may also look at them for expected behavior.
-        // Ensure you match the schema of the JsonObject as per the expected
-        // response of the service, and never pass/store unhashed passwords!
+        if (name == null || pwd == null || name.isEmpty() || pwd.isEmpty()) {
+            return result;
+        }
+
+        String query = "SELECT username, pwd, profile_photo_url FROM users "
+                + "WHERE username = ? AND pwd = ?";
+
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setString(1, name);
+            stmt.setString(2, pwd);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    String username = rs.getString("username");
+                    String profilePhotoUrl = rs.getString("profile_photo_url");
+                    if (!rs.next()) {
+                        result.addProperty("name", username == null ? "Unauthorized" : username);
+                        result.addProperty("profile", profilePhotoUrl == null ? "#" : profilePhotoUrl);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            result.addProperty("name", "Unauthorized");
+            result.addProperty("profile", "#");
+        }
 
         return result;
     }
