@@ -83,7 +83,8 @@ public class ProfileServlet extends HttpServlet {
 
     /**
      * A special constructor for TDD
-     * @param conn  The connection to use
+     * 
+     * @param conn The connection to use
      */
     ProfileServlet(Connection conn) {
         ProfileServlet.conn = conn;
@@ -102,7 +103,7 @@ public class ProfileServlet extends HttpServlet {
      * @param request  the request object that is passed to the servlet
      * @param response the response object that the servlet
      *                 uses to return the headers to the client
-     * @throws IOException      if an input or output error occurs
+     * @throws IOException if an input or output error occurs
      */
     protected void doGet(final HttpServletRequest request, final HttpServletResponse response)
             throws IOException {
@@ -120,8 +121,8 @@ public class ProfileServlet extends HttpServlet {
      * Method to perform the SQL query, retrieve the results and
      * construct and return a JsonObject with the expected result
      *
-     * @param name  The username supplied via the HttpServletRequest
-     * @param pwd   The password supplied via the HttpServletRequest
+     * @param name The username supplied via the HttpServletRequest
+     * @param pwd  The password supplied via the HttpServletRequest
      * @return A JsonObject with the servlet's response
      */
     JsonObject validateLoginAndReturnResult(String name, String pwd) {
@@ -141,9 +142,11 @@ public class ProfileServlet extends HttpServlet {
             stmt.setString(2, pwd);
 
             try (ResultSet rs = stmt.executeQuery()) {
+                // if only one response, success
                 if (rs.next()) {
                     String username = rs.getString("username");
                     String profilePhotoUrl = rs.getString("profile_photo_url");
+                    // if more than one result, set as unahtorized.
                     if (!rs.next()) {
                         result.addProperty("name", username == null ? "Unauthorized" : username);
                         result.addProperty("profile", profilePhotoUrl == null ? "#" : profilePhotoUrl);
@@ -151,6 +154,7 @@ public class ProfileServlet extends HttpServlet {
                 }
             }
         } catch (SQLException e) {
+            // handle excpetion
             result.addProperty("name", "Unauthorized");
             result.addProperty("profile", "#");
         }
