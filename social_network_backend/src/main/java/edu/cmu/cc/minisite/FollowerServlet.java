@@ -12,6 +12,10 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.neo4j.driver.AuthTokens;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.GraphDatabase;
+import org.neo4j.driver.Result;
+import org.neo4j.driver.Session;
+import org.neo4j.driver.Value;
+import org.neo4j.driver.Values;
 
 /**
  * Task 2:
@@ -58,7 +62,8 @@ public class FollowerServlet extends HttpServlet {
 
     /**
      * Constructor for mocking the class behaviour
-     * @param driver    Mocked driver object
+     * 
+     * @param driver Mocked driver object
      */
     FollowerServlet(Driver driver) {
         this.driver = driver;
@@ -70,10 +75,10 @@ public class FollowerServlet extends HttpServlet {
                 AuthTokens.basic(NEO4J_NAME, NEO4J_PWD));
     }
 
-
     /**
      * Method to get the user UD from the request,
      * and print the response.
+     * 
      * @param request  the request object that is passed to the servlet
      * @param response the response object that the servlet
      *                 uses to return the headers to the client
@@ -94,7 +99,6 @@ public class FollowerServlet extends HttpServlet {
         writer.close();
     }
 
-
     /**
      * Return the name and profile image url of followers, sorted
      * lexicographically in ascending order by userName.
@@ -103,9 +107,25 @@ public class FollowerServlet extends HttpServlet {
      */
     public JsonArray getFollowers(String id) {
         JsonArray followers = new JsonArray();
-        // TODO: To be implemented
+        String query = "MATCH (follower:User)-[:FOLLOWS]->(user:User {username: $username}) "
+                + "RETURN follower.username AS name, follower.url AS profile "
+                + "ORDER BY follower.username ASC";
+
+        try (Session session = driver.session()) {
+            Result result = session.run(query, Values.parameters("username", id));
+            while (result.hasNext()) {
+                org.neo4j.driver.Record record = result.next();
+                Value nameValue = record.get("name");
+                Value profileValue = record.get("profile");
+                String name = nameValue.asString();
+                String profile = profileValue.asString();
+                JsonObject follower = new JsonObject();
+                follower.addProperty("name", name);
+                follower.addProperty("profile", profile);
+                followers.add(follower);
+            }
+        }
+
         return followers;
     }
 }
-
-

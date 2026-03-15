@@ -1,10 +1,16 @@
 package edu.cmu.cc.minisite;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
+import static com.mongodb.client.model.Sorts.descending;
+import static com.mongodb.client.model.Projections.*;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -15,14 +21,16 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.ServletException;
 
 import org.bson.Document;
-
+import org.bson.conversions.Bson;
 
 /**
  * Task 3:
  * Implement your logic to return all the comments authored by this user.
  *
- * You should sort the comments by ups in descending order (from the largest to the smallest one).
- * If there is a tie in the ups, sort the comments in descending order by their timestamp.
+ * You should sort the comments by ups in descending order (from the largest to
+ * the smallest one).
+ * If there is a tie in the ups, sort the comments in descending order by their
+ * timestamp.
  */
 public class HomepageServlet extends HttpServlet {
 
@@ -76,11 +84,24 @@ public class HomepageServlet extends HttpServlet {
      */
     @Override
     protected void doGet(final HttpServletRequest request,
-                         final HttpServletResponse response) throws ServletException, IOException {
+            final HttpServletResponse response) throws ServletException, IOException {
 
-        JsonObject result = new JsonObject();
+        JsonArray result = new JsonArray();
         String id = request.getParameter("id");
-        // TODO: To be implemented
+
+        collection.createIndex(new Document("uid", 1));
+        Bson filter = Filters.eq("uid", id);
+        Bson projection = exclude("_id");
+        MongoCursor<Document> cursor = collection.find(filter)
+                .sort(descending("ups")).projection(projection).iterator();
+        try {
+            while (cursor.hasNext()) {
+                JsonObject jsonObject = JsonParser.parseString(cursor.next().toJson()).getAsJsonObject();
+                result.add(jsonObject);
+            }
+        } finally {
+            cursor.close();
+        }
         response.setContentType("text/html; charset=UTF-8");
         response.setCharacterEncoding("UTF-8");
         PrintWriter writer = response.getWriter();
@@ -88,4 +109,3 @@ public class HomepageServlet extends HttpServlet {
         writer.close();
     }
 }
-
